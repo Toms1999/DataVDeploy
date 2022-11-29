@@ -1,0 +1,84 @@
+---
+- hosts: sr_hosts
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name:  decompress new SR Software packages
+      unarchive:
+        src: "{{ newsr_file_path }}"
+        dest: "{{ newsr_dest_path }}"
+        copy: yes
+
+    - name: get java_home
+      shell: cat /etc/profile |grep 'export JAVA_HOME' | awk -F 'export' '{print $2}'
+      register: java_home
+      ignore_errors: true
+
+    - name: export java home for start_fe
+      lineinfile: 
+        path: "{{ newsr_home }}/fe/bin/start_fe.sh"
+        insertafter: "# java"
+        line: "export JAVA_HOME={{ java_home.stdout }}"
+
+    - name: export java home for broker
+      lineinfile:
+        path: "{{ newsr_home }}/apache_hdfs_broker/bin/start_broker.sh"
+        insertafter: "# java"
+        line: "export JAVA_HOME={{ java_home.stdout }}"
+
+
+- hosts: sr_backends
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name: update backends
+      shell:
+        cmd: 
+          mv {{ newsr_home }}/be/conf/be.conf {{ newsr_home }}/be/conf/new_be.conf &&
+          sh {{ sr_home }}/be/bin/stop_be.sh &&
+          cp -r {{ newsr_home }}/be {{ sr_home }}/be/../ && 
+          sh {{ sr_home }}/be/bin/start_be.sh --daemon
+
+
+- hosts: sr_brokers
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name: update brokers
+      shell: 
+        cmd: 
+          mv {{ newsr_home }}/apache_hdfs_broker/conf/apache_hdfs_broker.conf {{ newsr_home }}/apache_hdfs_broker/conf/new_apache_hdfs_broker.conf &&
+          sh {{ sr_home }}/apache_hdfs_broker/bin/stop_broker.sh &&
+          cp -r {{ newsr_home }}/apache_hdfs_broker {{ sr_home }}/apache_hdfs_broker/../ &&
+          sh {{ sr_home }}/apache_hdfs_broker/bin/start_broker.sh --daemon 
+
+
+- hosts: sr_frontends
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name:
+      shell:
+        cmd:  
+          mv {{ newsr_home }}/fe/conf/fe.conf {{ newsr_home }}/fe/conf/new_fe.conf &&
+          sh {{ sr_home }}/fe/bin/stop_fe.sh &&
+          cp -r {{ newsr_home }}/fe {{ sr_home }}/fe/../ &&
+          sh {{ sr_home }}/fe/bin/start_fe.sh --daemon
+
+
+- hosts: sr_master
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name:
+      shell:
+        cmd: 
+          mv {{ newsr_home }}/fe/conf/fe.conf {{ newsr_home }}/fe/conf/new_fe.conf &&
+          sh {{ sr_home }}/fe/bin/stop_fe.sh &&
+          cp -r {{ newsr_home }}/fe {{ sr_home }}/fe/../ &&
+          sh {{ sr_home }}/fe/bin/start_fe.sh --daemon

@@ -1,0 +1,39 @@
+---
+- hosts: sr_master
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name: start master
+      shell:
+        cmd: "sh {{ sr_home }}/fe/bin/start_fe.sh --daemon"
+
+
+- hosts: sr_frontends
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name: start all frontends
+      shell:
+        cmd: "sh {{ sr_home }}/fe/bin/start_fe.sh --daemon"
+
+
+- hosts: sr_backends
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml    
+  tasks:
+    - name: start all backends
+      shell:
+        cmd: "sh {{ sr_home }}/be/bin/start_be.sh --daemon"
+
+
+- hosts: sr_brokers
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name: start all brokers
+      shell:
+        cmd: "sh {{ sr_home }}/apache_hdfs_broker/bin/start_broker.sh --daemon"

@@ -1,0 +1,40 @@
+---
+- hosts: sr_brokers
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name: stop all brokers
+      shell:
+        cmd: "sh {{ sr_home }}/apache_hdfs_broker/bin/stop_broker.sh"
+
+
+- hosts: sr_backends
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name: stop all backends
+      shell:
+        cmd: "sh {{ sr_home }}/be/bin/stop_be.sh"
+
+
+- hosts: sr_frontends
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name: stop all frontends
+      shell:
+        cmd: "sh {{ sr_home }}/fe/bin/stop_fe.sh"
+
+
+- hosts: sr_master
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name: stop all frontends
+      shell:
+        cmd: "sh {{ sr_home }}/fe/bin/stop_fe.sh"
+

@@ -1,0 +1,79 @@
+---
+- hosts: scale_be
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name: scale {{ action }} be process
+      unarchive: 
+        src: "{{ starrocks_ansible_home }}/pack/.tar.gz"
+        dest: "{{ sr_home }}"
+        copy: yes
+      when: action == "out"
+    - name: mkdir be storage
+      file: 
+        path: "{{ storage_root_path }}"
+        state: directory
+      when: action == "out"
+
+    - name: alter be_priority_networks
+      lineinfile:
+        dest: "{{ sr_home }}/be/conf/be.conf"
+        insertafter: "# priority_networks"
+        line: "priority_networks = {{ be_priority_networks }}\n"
+      when: action == "out"
+
+    - name: alter be be_port
+      replace:
+        path: "{{ sr_home }}/be/conf/be.conf"
+        regexp: "9060"
+        replace: "{{ be_port }}"
+      when: action == "out"
+
+    - name: alter be webserver_port
+      replace:
+        path: "{{ sr_home }}/be/conf/be.conf"
+        regexp: "8040"
+        replace: "{{ webserver_port }}"
+      when: action == "out"
+
+    - name: alter be heartbeat_service_port
+      replace:
+        path: "{{ sr_home }}/be/conf/be.conf"
+        regexp: "9050"
+        replace: "{{ heartbeat_service_port }}"
+      when: action == "out"
+
+    - name: alter be brpc_port
+      replace:
+        path: "{{ sr_home }}/be/conf/be.conf"
+        regexp: "8060"
+        replace: "{{ brpc_port }}"
+      when: action == "out"
+
+    - name: sleep
+      shell: sleep 10
+
+    - name: start be
+      shell:
+        cmd: "sh {{ sr_home }}/be/bin/start_be.sh --daemon"
+      when: action == "out"
+
+
+- hosts: sr_master
+  remote_user: root
+  vars_files:
+    - ../../conf/setup_vars.yml
+  tasks:
+    - name: scale {{ action }} be roles
+      shell:
+        cmd: echo "alter system add backend \"{{ item }}:{{ heartbeat_service_port }}\";" | mysql -h{{ master }} -P{{ query_port }} -uroot -p{{ sr_password }}
+      with_items: "{{scale_be}}"
+      when: action == "out"
+
+    - name: scale {{ action }} be roles
+      shell:
+        cmd: echo "alter system decommission backend \"{{ item }}:{{ heartbeat_service_port }}\";" | mysql -h{{ master }} -P{{ query_port }} -uroot -p{{ sr_password }}
+      with_items: "{{scale_be}}"
+      when: action == "in"
+
